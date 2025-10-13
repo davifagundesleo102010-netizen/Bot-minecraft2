@@ -1,24 +1,30 @@
-const mineflayer = require('mineflayer');
+import mineflayer from 'mineflayer';
+import http from 'http';
 
-function iniciarBot() {
+// Cria um pequeno servidor HTTP só pra manter o Render ativo
+http.createServer((req, res) => res.end('Bot rodando no Render!')).listen(process.env.PORT || 3000);
+
+// Função que cria o bot e tenta reconectar automaticamente
+function startBot() {
   const bot = mineflayer.createBot({
-    host: 'osbrenrotados.aternos.me', // IP do seu servidor Aternos
-    port: 30805,                      // PORTA correta do servidor
-    username: 'BotMinecraft2',        // Nome do bot (pode mudar se quiser)
-    auth: 'offline',                  // Modo pirata (já que o servidor está como "Pirata: ativado")
-    version: '1.21.1'                 // Versão mais compatível com 1.21.10
+    host: 'osbrenrotados.aternos.me', // IP do Aternos
+    port: 30805,                      // Porta do Aternos
+    username: 'BotMinecraft2',        // Nome do bot
+    version: '1.21.1'                 // Compatível com Spigot 1.21.10
   });
 
-  bot.on('login', () => console.log('✅ Bot entrou no servidor com sucesso!'));
-  bot.on('spawn', () => console.log('🟢 Bot apareceu no mundo!'));
-  bot.on('end', () => {
-    console.log('⚠️ Bot foi desconectado. Tentando reconectar em 30s...');
-    setTimeout(iniciarBot, 30000);
+  bot.once('spawn', () => {
+    console.log('✅ Bot entrou no servidor!');
   });
+
+  bot.on('end', () => {
+    console.log('⚠️ Bot foi desconectado. Tentando reconectar em 10s...');
+    setTimeout(startBot, 10000);
+  });
+
   bot.on('error', (err) => {
     console.log('❌ Erro no bot:', err.message);
   });
 }
 
-console.log('⏳ Esperando 20s para o servidor iniciar...');
-setTimeout(iniciarBot, 20000);
+startBot();
