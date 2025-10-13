@@ -1,0 +1,10 @@
+{
+  "name": "bot-minecraft2",
+  "version": "1.0.0",
+  "description": "Bot Minecraft hospedado no Render",
+  "main": "index (2).js",
+  "scripts": {
+    "start": "node index (2).js"
+  },
+  "dependencies": {}
+}
