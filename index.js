@@ -16,7 +16,7 @@ function criarBot() {
   const bot = mineflayer.createBot({
     host: 'observetados.aternos.me', // 🔹 troque pelo IP do seu servidor
     port: 30805,                     // 🔹 troque pela porta correta do Aternos
-    username: 'BotMinecraft',        // nome do bot
+    username: 'taligado',        // nome do bot
     version: '1.21.1',               // força versão compatível
   });
 
