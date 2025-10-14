@@ -7,112 +7,103 @@ import OpenAI from "openai";
 import dns from "dns";
 
 // ===============================
-// 🔧 CONFIGURAÇÕES
+// ⚙️ CONFIGURAÇÕES
 // ===============================
 const HOST = "osbrenrotados.aternos.me"; // IP do servidor
-const PORT = 30805;                      // Porta do servidor
-const USERNAME = "BotIA";                // Nome do bot
-const VERSION = false;                   // false = detecta versão automática
-const CHECK_INTERVAL = 60000;            // Tempo entre tentativas (1 min)
+const PORT = 30805; // Porta do servidor
+const USERNAME = "BotIA"; // Nome do bot
+const VERSION = false; // Detecta automaticamente
+const RETRY_DELAY = 60_000; // 1 minuto entre tentativas
 
 // ===============================
-// 🌐 Servidor Express (mantém Render acordado)
+// 🌍 Servidor web para o Render
 // ===============================
 const app = express();
 const PORT_WEB = process.env.PORT || 3000;
-app.get("/", (req, res) => res.send("🤖 Bot IA online e monitorando o servidor Minecraft!"));
-app.listen(PORT_WEB, () => console.log(`🌍 Servidor web rodando na porta ${PORT_WEB}`));
+app.get("/", (req, res) => res.send("🤖 Bot IA está ativo e monitorando o servidor!"));
+app.listen(PORT_WEB, () => console.log(`🌐 Servidor web ativo na porta ${PORT_WEB}`));
 
 // ===============================
-// 🧠 OpenAI
+// 🧠 OpenAI (IA do bot)
 // ===============================
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // ===============================
-// 🤖 Função principal do bot
+// 🔁 Função de reconexão segura
 // ===============================
-function createBot() {
-  console.log("🚀 Iniciando o bot...");
+function startBot() {
+  console.log("🚀 Tentando conectar o bot...");
 
   const bot = mineflayer.createBot({
     host: HOST,
     port: PORT,
     username: USERNAME,
-    version: VERSION
+    version: VERSION,
   });
 
-  // Plugins
   bot.loadPlugin(pathfinder);
   bot.loadPlugin(pvp.plugin);
   bot.loadPlugin(armorManager);
 
   bot.once("spawn", () => {
     console.log("✅ Bot entrou no servidor com sucesso!");
-    bot.chat("Olá, estou online! 🤖");
   });
 
-  // Reconexão segura
   bot.on("end", () => {
-    console.log("❌ Bot desconectado. Tentando reconectar em 1 minuto...");
-    setTimeout(checkServerAndReconnect, CHECK_INTERVAL);
+    console.log("❌ Bot desconectado! Tentando reconectar...");
+    setTimeout(checkServerAndReconnect, RETRY_DELAY);
   });
 
   bot.on("kicked", (reason) => {
-    console.warn("⚠️ Bot foi expulso:", reason);
-    console.log("Tentando reconectar em 1 minuto...");
-    setTimeout(checkServerAndReconnect, CHECK_INTERVAL);
+    console.log("⚠️ Bot foi kickado:", reason);
+    setTimeout(checkServerAndReconnect, RETRY_DELAY);
   });
 
   bot.on("error", (err) => {
-    console.error("⚠️ Erro no bot:", err.code || err.message);
-    if (err.code === "ECONNRESET" || err.code === "ECONNREFUSED") {
-      console.log("🔄 Conexão perdida. Tentando reconectar em 20 segundos...");
-      setTimeout(checkServerAndReconnect, 20000);
-    }
+    console.error("❌ Erro no bot:", err.message);
+    setTimeout(checkServerAndReconnect, RETRY_DELAY);
   });
 
-  // 💬 IA para responder no chat
   bot.on("chat", async (username, message) => {
     if (username === bot.username) return;
+
     console.log(`[${username}] ${message}`);
 
     try {
-      const resposta = await client.chat.completions.create({
-        model: "gpt-4o-mini",
+      const resposta = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
         messages: [
-          { role: "system", content: "Você é um assistente simpático e divertido dentro do Minecraft. Fale de forma leve e amigável." },
-          { role: "user", content: message }
-        ]
+          { role: "system", content: "Você é um bot simpático dentro do Minecraft, que responde mensagens no chat." },
+          { role: "user", content: message },
+        ],
       });
 
       const reply = resposta.choices[0].message.content;
-      if (reply) {
-        bot.chat(reply);
-        console.log(`🤖 → ${reply}`);
-      }
+      bot.chat(reply);
+      console.log(`🤖 → ${reply}`);
     } catch (err) {
-      console.error("❌ Erro ao gerar resposta:", err.message);
-      bot.chat("Ops! Tive um erro ao pensar 😅");
+      console.error("Erro ao responder com IA:", err.message);
+      bot.chat("Desculpe, tive um erro ao pensar 😅");
     }
   });
 }
 
 // ===============================
-// 🔁 Verifica se o servidor está online antes de reconectar
+// 🕹️ Checa servidor antes de conectar
 // ===============================
 function checkServerAndReconnect() {
   dns.lookup(HOST, (err) => {
     if (err) {
-      console.log("🕒 Servidor ainda offline. Tentando novamente em 1 minuto...");
-      setTimeout(checkServerAndReconnect, CHECK_INTERVAL);
+      console.log("🕒 Servidor Aternos ainda offline, tentando novamente em 1 minuto...");
+      setTimeout(checkServerAndReconnect, RETRY_DELAY);
     } else {
-      console.log("🟢 Servidor online detectado! Reconectando o bot...");
-      createBot();
+      console.log("🟢 Servidor online detectado! Iniciando bot...");
+      startBot();
     }
   });
 }
 
-// Inicializa o bot pela primeira vez
+// Inicia o ciclo
 checkServerAndReconnect();
